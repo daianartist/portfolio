@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="white">
+      <!-- floating pill nav -->
+      <header class="nav">
+        <button class="nav-swatch" aria-label="color switcher"></button>
+        <span class="nav-name" data-content="name"></span>
+        <span class="nav-role" data-content="role"></span>
+        <a class="nav-talk" data-content-href="email">Let's talk</a>
+        <button class="nav-sound" aria-label="Turn sound on" aria-pressed="false">♪</button>
+      </header>
+
+      <!-- loader -->
+      <div class="loader" aria-hidden="true">
+        <canvas class="loader-canvas"></canvas>
+        <div class="loader-grid site-grid">
+          <div class="loader-name" data-chars="name"></div>
+          <div class="loader-bar"><span></span></div>
+          <div class="loader-role" data-chars="role"></div>
+        </div>
+        <div class="loader-hint" data-chars="hint"></div>
+      </div>
+
+      <div class="index">
+        <div class="bg">
+          <div class="scene"><canvas id="c"></canvas></div>
+
+          <div class="content">
+            <!-- hero -->
+            <div class="hero">
+              <div class="hero-trigger"></div>
+              <div class="hero-sticky-wrap">
+                <div class="hero-sticky site-grid">
+                  <h1 class="hero-name"><span class="pill" data-content="name"></span></h1>
+                  <h2 class="hero-role"><span class="pill" data-content="role"></span></h2>
+                </div>
+              </div>
+            </div>
+
+            <!-- introduction -->
+            <div class="introduction site-grid">
+              <div class="sr-only intro-sr"></div>
+              <div class="intro-text" aria-hidden="true"></div>
+              <div class="intro-aside">
+                <ul class="recognitions"></ul>
+              </div>
+            </div>
+
+            <!-- works -->
+            <section class="works">
+              <ul class="works-list"></ul>
+            </section>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <footer class="footer">
+          <div class="footer-outer">
+            <div class="footer-inner">
+              <canvas class="footer-canvas"></canvas>
+              <div class="footer-layout">
+                <div class="site-grid-inner footer-top">
+                  <div class="footer-text"></div>
+                  <ul class="socials"></ul>
+                </div>
+                <div class="site-grid-inner footer-bottom">
+                  <span class="footer-label footer-label-fonts">Fonts</span>
+                  <ul class="footer-fonts"></ul>
+                  <span class="footer-label footer-label-design">design</span>
+                  <a class="footer-design" target="_blank" rel="noopener"></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
