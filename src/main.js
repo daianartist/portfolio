@@ -439,8 +439,6 @@ function initScene() {
     store.scene = new Scene($('#c'), $('.footer-canvas'), {
       theme: store.theme,
       shapes: [
-        isShape('hero', [s.hero], false),
-        isShape('hero', [s.hero], true),
         isShape('projects', [s.projects], false),
         isShape('projects', s.projectsMobile, true),
         isShape('mail', [s.mail], false),

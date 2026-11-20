@@ -12,15 +12,15 @@ export const content = {
   cv: 'media/cv-daiana-arapbekova.pdf',
 
   // Большие 3D-надписи, которые рендерятся в ASCII
+  // (в hero вместо надписи плывут орнаменты из ornaments)
   shapes: {
-    hero: 'DA',
     projects: 'Selected projects',
     projectsMobile: ['Selected', 'projects'],
     mail: "Let's talk",
     mailMobile: ["Let's", 'talk'],
   },
 
-  // Орнаменты, которые по очереди крутятся в ASCII рядом с блоком «обо мне»
+  // Орнаменты: маленькие плывут по первому экрану, крупный крутится рядом с блоком «обо мне»
   ornaments: ['media/ornaments/oyu.png', 'media/ornaments/Vector-2.png', 'media/ornaments/Vector-3.png', 'media/ornaments/ayshyk.png'],
 
   // Абзацы блока «обо мне» (можно HTML)

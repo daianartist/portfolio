@@ -241,6 +241,145 @@ export class FloatingObject {
   }
 }
 
+// ── hero: small ornaments drifting across the screen ──
+const DRIFT_Z = -3
+const DRIFT_HIDDEN_Z = -33
+
+export class DriftingOrnaments {
+  constructor(ornaments = [], { count = 16 } = {}) {
+    this.root = new THREE.Group()
+    this.root.position.z = DRIFT_HIDDEN_Z
+    this.count = count
+    this.items = []
+    this.materials = []
+    this.started = false
+    this.visible = false
+    this.fade = { value: 0 }
+    this.last = performance.now()
+    this.geometry = new THREE.PlaneGeometry(1, 1)
+    this.ready = Promise.all(ornaments.map((url) => loadOrnamentMask(url).catch(() => null))).then((masks) => {
+      masks = masks.filter(Boolean)
+      if (!masks.length) return
+      this.materials = masks.map(
+        ({ texture }) =>
+          // dark material -> dense glyphs (the ascii ramp maps dark to ▓█)
+          new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            metalness: 0.4,
+            roughness: 0.6,
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+            alphaMap: texture,
+          }),
+      )
+      for (let i = 0; i < this.count; i++) {
+        const m = i % masks.length
+        const mesh = new THREE.Mesh(this.geometry, this.materials[m])
+        const size = 0.17 + Math.random() * 0.13
+        const { aspect } = masks[m]
+        const item = {
+          mesh,
+          w: aspect >= 1 ? size : size * aspect,
+          h: aspect >= 1 ? size / aspect : size,
+          // spread start positions over the whole width so the screen is filled at once
+          u: i / this.count + Math.random() * 0.05,
+          v: Math.random(),
+          speed: (0.012 + Math.random() * 0.02) * (Math.random() < 0.25 ? -1 : 1),
+          bob: 0.02 + Math.random() * 0.04,
+          phase: Math.random() * Math.PI * 2,
+          spin: (Math.random() - 0.5) * 0.6,
+          wobble: 0.15 + Math.random() * 0.3,
+          z: (Math.random() - 0.5) * 0.4,
+          pop: 0,
+        }
+        mesh.scale.set(0.0001, 0.0001, 1)
+        mesh.rotation.z = Math.random() * Math.PI * 2
+        this.root.add(mesh)
+        this.items.push(item)
+      }
+      if (this.started) this.popIn()
+    })
+  }
+
+  // after the loader: ornaments appear one by one
+  animateIn() {
+    this.started = true
+    this.show()
+    this.popIn()
+  }
+
+  popIn() {
+    this.items.forEach((it, i) => {
+      gsap.fromTo(it, { pop: 0 }, { pop: 1, duration: 1.4, ease: 'back.out(2.2)', delay: 0.15 + i * 0.09 })
+    })
+  }
+
+  show() {
+    this.visible = true
+    if (!this.started) return
+    this.root.position.z = DRIFT_Z
+    gsap.to(this.fade, { value: 1, duration: 1, ease: 'power3.out', overwrite: 'all' })
+  }
+
+  hide() {
+    this.visible = false
+    gsap.to(this.fade, {
+      value: 0,
+      duration: 0.8,
+      ease: 'power3.out',
+      overwrite: 'all',
+      onComplete: () => {
+        if (!this.visible) this.root.position.z = DRIFT_HIDDEN_Z
+      },
+    })
+  }
+
+  /** @param {THREE.PerspectiveCamera} camera */
+  tick(camera) {
+    const now = performance.now()
+    const dt = Math.min(0.1, (now - this.last) / 1000)
+    this.last = now
+    if (!this.items.length || this.root.position.z === DRIFT_HIDDEN_Z) return
+
+    // visible area at the drift depth
+    const viewH = 2 * Math.abs(DRIFT_Z) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    const viewW = viewH * camera.aspect
+    const span = viewW + 0.6
+    const t = now / 1000
+
+    for (const it of this.items) {
+      it.u += (it.speed * dt * 3) / span
+      if (it.u > 1) {
+        it.u -= 1
+        it.v = Math.random()
+      } else if (it.u < 0) {
+        it.u += 1
+        it.v = Math.random()
+      }
+      const m = it.mesh
+      m.position.x = -span / 2 + it.u * span
+      m.position.y = (it.v - 0.5) * viewH * 0.9 + Math.sin(t * 0.6 + it.phase) * it.bob
+      m.position.z = it.z
+      m.rotation.z += it.spin * dt
+      m.rotation.y = Math.sin(t * 0.5 + it.phase) * it.wobble
+      const s = Math.max(0.0001, it.pop)
+      m.scale.set(it.w * s, it.h * s, 1)
+    }
+    for (const mat of this.materials) mat.opacity = this.fade.value
+  }
+
+  dispose() {
+    this.items.forEach((it) => gsap.killTweensOf(it))
+    gsap.killTweensOf(this.fade)
+    this.geometry.dispose()
+    this.materials.forEach((m) => {
+      m.alphaMap?.dispose()
+      m.dispose()
+    })
+  }
+}
+
 // ── typed letters: a glyph pops in the scene with optional echoes ──
 const LETTER_Z = -2.6
 const ECHOES = 4

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import gsap from 'gsap'
 import { AsciiEffect } from './AsciiEffect.js'
-import { TextShape, FloatingObject, Letter, BackgroundNoise } from './shapes.js'
+import { TextShape, FloatingObject, DriftingOrnaments, Letter, BackgroundNoise } from './shapes.js'
 import { audio } from '../audio.js'
 import { bus } from '../bus.js'
 import { content } from '../content.js'
@@ -87,6 +87,8 @@ export class Scene {
     this.setupScene()
     this.setupEffect()
     this.setupShapes()
+    this.drift = new DriftingOrnaments(content.ornaments, { count: this.isMobile ? 8 : 13 })
+    this.group.add(this.drift.root)
     if (!this.isMobile) this.setupObject()
     this.backgroundNoise = new BackgroundNoise(this.scene)
     this.animate()
@@ -139,7 +141,7 @@ export class Scene {
   }
 
   animateIn() {
-    this.shapes?.[0]?.animateIn()
+    this.drift?.animateIn()
   }
 
   animate() {
@@ -148,6 +150,7 @@ export class Scene {
     this.backgroundNoise.update()
     if (this.motion) this.updateMotion()
     this.object?.tick()
+    this.drift?.tick(this.camera)
     this.frame++
     // when idle, halve the frame rate
     const idle = performance.now() - this.lastActivity > IDLE_RENDER_AFTER && !this.effect.hasActiveRipples()
@@ -420,11 +423,13 @@ export class Scene {
 
   showShape(slug) {
     this.currentShape = slug
+    if (slug === 'hero') this.drift?.show()
     this.shapes.find((s) => s.slug === slug)?.show()
   }
 
   hideShape(slug) {
     this.currentShape = null
+    if (slug === 'hero') this.drift?.hide()
     this.shapes.find((s) => s.slug === slug)?.hide()
   }
 
@@ -496,6 +501,7 @@ export class Scene {
     gsap.killTweensOf([this.melt, this.staticNoise])
     this.shapes.forEach((s) => s.dispose())
     this.object?.dispose()
+    this.drift?.dispose()
     this.backgroundNoise.dispose()
     this.effect.dispose()
     this.renderer.dispose()
