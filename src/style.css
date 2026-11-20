@@ -433,11 +433,50 @@ main.black .footer-canvas {
 }
 .work-group-count {
   grid-column: 7 / span 2;
+  grid-row: 1;
   text-align: right;
+}
+/* invitation under the group title: full opacity so it reads as a call to action */
+.work-group-hint {
+  grid-column: span 8;
+  margin-top: 0.8rem;
+}
+.work-group:has(.work-group-hint) {
+  opacity: 1;
+}
+.work-group:has(.work-group-hint) .work-group-label,
+.work-group:has(.work-group-hint) .work-group-count {
+  opacity: 0.5;
+}
+.work-group-arrow {
+  opacity: 0.5;
+}
+.blink-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.3em;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: blink 1.05s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blink-cursor {
+    animation: none;
+  }
 }
 @media (width >= 1024px) {
   .work-group-label {
-    grid-column: 3 / span 6;
+    grid-column: 3 / span 3;
+  }
+  .work-group-hint {
+    grid-column: 6 / span 6;
+    margin-top: 0;
   }
   .work-group-count {
     grid-column: 12 / span 1;
@@ -471,6 +510,11 @@ main.black .footer-canvas {
 }
 .work-meta > span {
   flex: 1;
+  min-width: 0;
+  padding-right: 1.2rem;
+}
+.work-meta > span:nth-child(2) {
+  flex: 1.5;
 }
 .work-meta > .desktop {
   display: none;
@@ -796,6 +840,157 @@ main.black .case-close {
   }
   .case.is-image-only .case-media {
     grid-column: 3 / span 8;
+  }
+}
+
+/* ── demo terminal ───────────────────────────────────────── */
+.case-term {
+  grid-column: span 8;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+main.black .case-term {
+  border-color: rgb(0 0 0 / 0.35);
+}
+.case-term[hidden] {
+  display: none;
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.8rem 1.2rem;
+  border-bottom: 1px solid rgb(127 127 127 / 0.35);
+}
+.term-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+.term-dots i {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.6;
+}
+.term-dots i:first-child {
+  background: currentColor;
+}
+.term-title {
+  font-family: andale-mono, 'Andale Mono', ui-monospace, Menlo, monospace;
+  font-weight: 400;
+}
+.term-hint {
+  margin-left: auto;
+  opacity: 0.45;
+}
+.term-screen,
+.term-input {
+  font-family: andale-mono, 'Andale Mono', ui-monospace, Menlo, monospace;
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.term-screen {
+  height: 42vh;
+  min-height: 26rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.2rem;
+}
+.term-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
+}
+.term-gap {
+  min-height: 0.8em;
+}
+.term-ps1,
+.term-dim {
+  opacity: 0.45;
+}
+.term-out {
+  opacity: 0.85;
+}
+.term-err {
+  opacity: 0.85;
+  text-decoration: underline wavy rgb(127 127 127 / 0.6);
+  text-underline-offset: 0.3em;
+}
+.term-cmdline > span:last-child::after {
+  content: '';
+}
+.term-input {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1.2rem;
+  border-top: 1px solid rgb(127 127 127 / 0.35);
+}
+.term-prompt {
+  opacity: 0.6;
+}
+.term-field {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  outline: none;
+  caret-color: currentColor;
+}
+.term-field::placeholder {
+  color: inherit;
+  opacity: 0.35;
+}
+.term-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 1.2rem;
+  border-top: 1px solid rgb(127 127 127 / 0.35);
+}
+.term-cmds button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+  transition:
+    background-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+.term-n {
+  opacity: 0.5;
+  font-family: andale-mono, 'Andale Mono', ui-monospace, Menlo, monospace;
+  font-weight: 400;
+}
+.term-cmds button.is-active,
+.term-cmds button:hover {
+  background: var(--white);
+  color: var(--black);
+}
+main.black .term-cmds button.is-active,
+main.black .term-cmds button:hover {
+  background: var(--black);
+  color: var(--white);
+}
+@media (width >= 1024px) {
+  .case-term {
+    grid-column: 7 / span 6;
+    grid-row: 1;
+  }
+  .case.has-term .case-media {
+    grid-column: 7 / span 6;
+  }
+  .case.no-media.has-term .case-info {
+    grid-column: 3 / span 3;
+  }
+  .term-screen {
+    height: 46vh;
   }
 }
 

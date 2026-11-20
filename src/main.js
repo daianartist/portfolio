@@ -116,15 +116,188 @@ function initIntroduction() {
 }
 
 // ── works ───────────────────────────────────────────────────
+// types a line like a terminal once it scrolls into view
+function typeOut(el, text, trigger) {
+  ScrollTrigger.create({
+    trigger,
+    start: 'top 90%',
+    once: true,
+    onEnter: () => {
+      const state = { n: 0 }
+      gsap.to(state, {
+        n: text.length,
+        duration: Math.min(2.6, text.length * 0.022),
+        ease: 'none',
+        delay: 0.3,
+        onUpdate: () => (el.textContent = text.slice(0, Math.round(state.n))),
+      })
+    },
+  })
+}
+
+// keep as many stack items as fit the narrow meta column
+function shortStack(stack, max = 30) {
+  let s = stack[0] || ''
+  for (const item of stack.slice(1, 3)) {
+    if ((s + ' · ' + item).length > max) break
+    s += ' · ' + item
+  }
+  return s
+}
+
+// what's waiting inside the card — shown in the row and as the first marquee tag
+function teaser(work) {
+  const media = work.media || []
+  const clips = media.filter((m) => /\.(mp4|webm|mov)$/i.test(m)).length
+  const playable = (work.links || []).some((l) => /itch\.io/.test(l.url))
+  if (work.terminal) return { row: `$ ${work.terminal.session.length} commands_`, cta: 'Click to run it in the terminal' }
+  if (playable) return { row: `▶ Playable · ${media.length} shots`, cta: 'Click — playable on itch.io' }
+  if (clips) return { row: `▶ ${clips} clip${clips > 1 ? 's' : ''} · ${media.length - clips} stills`, cta: 'Click to watch it move' }
+  if (media.length) return { row: `${media.length} file${media.length > 1 ? 's' : ''}`, cta: 'Click to open the gallery' }
+  return { row: (work.links || []).map((l) => l.label).join(' · '), cta: 'Click to open' }
+}
+
 function marqueeText(work, num) {
   const title = escapeHtml(work.title)
   let s = ''
-  for (const tag of [work.subtitle, ...work.stack]) s += `${NBSP7}${num}${NBSP7}${title}↗${NBSP7}${escapeHtml(tag)}`
+  for (const tag of [teaser(work).cta, work.subtitle, ...work.stack]) s += `${NBSP7}${num}${NBSP7}${title}↗${NBSP7}${escapeHtml(tag)}`
   while (s.length < 2000) s += s
   return s
 }
 
 const isVideo = (src) => /\.(mp4|webm|mov)$/i.test(src)
+
+// ── demo terminal inside the case view ──────────────────────
+const terminal = (() => {
+  const root = $('.case-term')
+  const screen = $('.term-screen', root)
+  const cmds = $('.term-cmds', root)
+  const form = $('.term-input', root)
+  const field = $('.term-field', root)
+  let data = null
+  let run = 0 // bumps on every new command / close: cancels the previous animation
+  let auto = null
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  const scrollDown = () => (screen.scrollTop = screen.scrollHeight)
+
+  function line(cls, text = '') {
+    const el = document.createElement('div')
+    el.className = cls
+    el.textContent = text
+    screen.appendChild(el)
+    scrollDown()
+    return el
+  }
+
+  function promptLine() {
+    const el = line('term-line term-cmdline')
+    const p = document.createElement('span')
+    p.className = 'term-ps1'
+    p.textContent = `${data.cwd} $ `
+    const t = document.createElement('span')
+    el.append(p, t)
+    return t
+  }
+
+  async function exec(i) {
+    const item = data?.session[i]
+    if (!item) return
+    const id = ++run
+    $$('button', cmds).forEach((b, j) => b.classList.toggle('is-active', j === i))
+    audio.hover()
+    const t = promptLine()
+    // type the command; long commands type faster
+    const step = Math.max(4, Math.min(28, 900 / item.cmd.length))
+    for (let c = 0; c < item.cmd.length; c++) {
+      if (id !== run) return
+      t.textContent += item.cmd[c]
+      if (item.cmd[c] === '\n') scrollDown()
+      await wait(step)
+    }
+    await wait(260)
+    for (const out of item.out.split('\n')) {
+      if (id !== run) return
+      line('term-line term-out', out)
+      await wait(22)
+    }
+    line('term-line term-gap')
+  }
+
+  function print(text, cls = 'term-out') {
+    text.split('\n').forEach((l) => line(`term-line ${cls}`, l))
+    line('term-line term-gap')
+  }
+
+  function help() {
+    const t = promptLine()
+    t.textContent = 'help'
+    print(
+      [
+        'Available demo commands:',
+        ...data.session.map((s, i) => `  ${String(i + 1).padStart(2)}  ${s.label}`),
+        '',
+        '  clear  clear the screen',
+        'Type a number, a label, or the command itself.',
+      ].join('\n'),
+    )
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const v = field.value.trim()
+    field.value = ''
+    if (!data || !v) return
+    clearTimeout(auto)
+    const q = v.toLowerCase()
+    if (q === 'help' || q === '?') return help()
+    if (q === 'clear' || q === 'cls') {
+      run++
+      screen.textContent = ''
+      return
+    }
+    const n = parseInt(q, 10)
+    let i = String(n) === q ? n - 1 : -1
+    if (i < 0) i = data.session.findIndex((s) => s.cmd.toLowerCase().startsWith(q) || s.label.toLowerCase() === q)
+    if (i >= 0 && i < data.session.length) return exec(i)
+    run++
+    const t = promptLine()
+    t.textContent = v
+    print(`demo shell: command not found: ${v.split(/\s+/)[0]}\nType "help" to see the available commands.`, 'term-err')
+  })
+
+  return {
+    open(d) {
+      run++
+      clearTimeout(auto)
+      data = d
+      root.hidden = !d
+      screen.textContent = ''
+      cmds.innerHTML = ''
+      if (!d) return
+      $('.term-title', root).textContent = d.cwd
+      d.session.forEach((s, i) => {
+        const li = document.createElement('li')
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.innerHTML = `<span class="term-n">${String(i + 1).padStart(2, '0')}</span> ${escapeHtml(s.label)}`
+        b.addEventListener('click', () => {
+          clearTimeout(auto)
+          exec(i)
+        })
+        li.appendChild(b)
+        cmds.appendChild(li)
+      })
+      line('term-line term-dim', `# ${d.session.length} demo commands · click one below or type "help"`)
+      line('term-line term-gap')
+      auto = setTimeout(() => exec(0), 1100)
+    },
+    close() {
+      run++
+      clearTimeout(auto)
+    },
+  }
+})()
 
 // ── case view (project details / certificate) ───────────────
 const caseView = (() => {
@@ -160,6 +333,8 @@ const caseView = (() => {
         .join(''),
     )
     root.classList.toggle('no-media', !(data.media || []).length)
+    root.classList.toggle('has-term', !!data.terminal)
+    terminal.open(data.terminal || null)
     root.classList.toggle('is-image-only', !!data.imageOnly)
     $('.case-flow', root).hidden = !data.flow
 
@@ -176,7 +351,7 @@ const caseView = (() => {
       { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.7, ease: 'power3.inOut', overwrite: 'all' },
     )
     gsap.fromTo(
-      $$('.case-head > *, .case-info > *, .case-media figure', root),
+      $$('.case-head > *, .case-info > *, .case-media figure, .case-term:not([hidden])', root),
       { y: 30, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', stagger: 0.04, delay: 0.35 },
     )
@@ -186,6 +361,7 @@ const caseView = (() => {
   function hide() {
     if (!open) return
     open = false
+    terminal.close()
     $$('video', root).forEach((v) => v.pause())
     gsap.to(panel, {
       clipPath: 'inset(0% 0% 100% 0%)',
@@ -214,9 +390,14 @@ function initWorks() {
   content.workGroups.forEach((group) => {
     const head = document.createElement('li')
     head.className = 'work-group site-grid text-small'
-    head.innerHTML = `<span class="work-group-label" data-scramble>${escapeHtml(group.label)}</span><span class="work-group-count" data-scramble>(${String(group.works.length).padStart(2, '0')})</span>`
+    head.innerHTML = `
+      <span class="work-group-label" data-scramble>${escapeHtml(group.label)}</span>
+      ${group.hint ? `<span class="work-group-hint"><span class="work-group-arrow">↳ </span><span class="sr-only">${escapeHtml(group.hint)}</span><span class="hint-typed" aria-hidden="true"></span><span class="blink-cursor" aria-hidden="true"></span></span>` : ''}
+      <span class="work-group-count" data-scramble>(${String(group.works.length).padStart(2, '0')})</span>`
     list.appendChild(head)
     $$('[data-scramble]', head).forEach((el) => scrambleText(el, { start: 'top 95%' }))
+    const typed = $('.hint-typed', head)
+    if (typed) typeOut(typed, group.hint, head)
 
     group.works.forEach((work) => addWork(list, work, ++index))
   })
@@ -226,7 +407,6 @@ function initWorks() {
 
 function addWork(list, work, i) {
     const num = i < 10 ? `0${i}` : String(i)
-    const files = (work.media || []).length
     const li = document.createElement('li')
     li.className = 'work'
     li.innerHTML = `
@@ -236,8 +416,8 @@ function addWork(list, work, i) {
           <span class="work-title text-large" data-scramble>${escapeHtml(work.title)}</span>
           <span class="work-meta">
             <span data-scramble>${escapeHtml(work.category)}</span>
-            <span class="desktop" data-scramble>${escapeHtml(work.stack.slice(0, 3).join(' · '))}</span>
-            <span class="desktop" data-scramble>${files ? `${files} Files` : (work.links || []).map((l) => l.label).join(' · ')}</span>
+            <span class="desktop" data-scramble>${escapeHtml(shortStack(work.stack))}</span>
+            <span class="desktop work-teaser" data-scramble>${escapeHtml(teaser(work).row)}</span>
           </span>
           <span class="work-year" data-scramble>${escapeHtml(work.year || '↗')}</span>
         </span>

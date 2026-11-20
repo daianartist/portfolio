@@ -3,6 +3,8 @@
 //  Медиа лежат в public/media/ и указываются путём 'media/…'
 // ─────────────────────────────────────────────────────────────
 
+import { terminals } from './terminals.js'
+
 const GH = 'https://github.com/daianartist'
 
 export const content = {
@@ -40,10 +42,13 @@ export const content = {
   ],
 
   // Работы. Каждая группа — подзаголовок в списке.
-  // media — картинки и видео (.mp4) для окна проекта; links — кнопки-ссылки
+  // media — картинки и видео (.mp4) для окна проекта; links — кнопки-ссылки;
+  // terminal — демо-сессия командной строки (см. src/terminals.js)
   workGroups: [
     {
       label: 'Backend systems',
+      // подсказка под заголовком группы
+      hint: 'Open any card — each one ships with a live terminal. Run the requests, read the responses, try to break it.',
       works: [
         {
           title: '1337b04rd',
@@ -53,6 +58,7 @@ export const content = {
           desc: 'Anonymous imageboard built in Go. Visitors receive a Rick and Morty character as a temporary identity and can publish image threads and comments without registration. PostgreSQL stores posts and sessions, MinIO stores images, and expired threads move to a read-only archive.',
           flow: 'HTTP Layer ──▶ Hexagonal Service ──▶ PostgreSQL\n                       │\n             MinIO Image Storage\n                       │\n             Expiring Threads → Archive',
           links: [{ label: 'GitHub', url: `${GH}/1337b04rd` }],
+          terminal: terminals.board,
         },
         {
           title: 'Ride Hail',
@@ -62,6 +68,7 @@ export const content = {
           desc: 'Go microservices coordinate the ride lifecycle across ride, driver/location, and admin services. RabbitMQ handles ride and driver events; PostGIS supports nearby-driver matching, with WebSockets for offers and live updates.',
           flow: 'Ride API ──▶ RabbitMQ ──▶ Driver Matching\n    │                         │\n PostgreSQL + PostGIS ◀── WebSockets',
           links: [{ label: 'GitHub', url: `${GH}/ride-hail` }],
+          terminal: terminals.rideHail,
         },
         {
           title: 'Marketflow',
@@ -71,6 +78,7 @@ export const content = {
           desc: 'Concurrent Go service for live or simulated crypto price streams. Aggregates per-minute min/max/average statistics, stores results in PostgreSQL, and caches latest prices in Redis behind a REST API.',
           flow: 'Exchange Streams ──▶ Worker Pools\n       │                 │\n     Redis ◀── Aggregation ──▶ PostgreSQL',
           links: [{ label: 'GitHub', url: `${GH}/marketflow` }],
+          terminal: terminals.marketflow,
         },
         {
           title: 'Where’s My Pizza',
@@ -80,6 +88,7 @@ export const content = {
           desc: 'Restaurant order workflow split into an HTTP order service, kitchen workers, and a notification subscriber. RabbitMQ carries order and status events; PostgreSQL persists orders and worker data.',
           flow: 'HTTP Order API ──▶ PostgreSQL\n       │\n   RabbitMQ ──▶ Kitchen Worker ──▶ Notifications',
           links: [{ label: 'GitHub', url: `${GH}/where-is-my-pizza` }],
+          terminal: terminals.pizza,
         },
         {
           title: 'Attendance Control',
@@ -99,6 +108,7 @@ export const content = {
           desc: 'REST API for coffee shop operations: orders, menu, inventory, and sales reports. Uses handler, service, and repository layers with JSON-file persistence and automatic ingredient deduction when orders are fulfilled.',
           flow: 'REST API ──▶ Services ──▶ JSON Repositories\n                 │\n          Inventory Updates',
           links: [{ label: 'GitHub', url: `${GH}/hot-coffee` }],
+          terminal: terminals.coffee,
         },
         {
           title: 'RSSHub',
@@ -108,6 +118,7 @@ export const content = {
           desc: 'CLI RSS aggregator that fetches and parses feeds, stores articles in PostgreSQL, and runs background aggregation with a configurable worker pool. Fetch interval and worker count can be changed while it runs.',
           flow: 'RSS Feeds ──▶ Worker Pool ──▶ PostgreSQL\n                   ▲\n             CLI Controls',
           links: [{ label: 'GitHub', url: `${GH}/RSShub` }],
+          terminal: terminals.rsshub,
         },
         {
           title: 'OwnRedis',
@@ -117,6 +128,7 @@ export const content = {
           desc: 'Lightweight Redis-inspired key-value server over UDP. Supports PING, SET, and GET, concurrent access with mutexes, PX-based key expiration, and background cleanup.',
           flow: 'UDP Clients ──▶ Command Handler ──▶ In-Memory Store\n                                      │\n                               Expiration Cleanup',
           links: [{ label: 'GitHub', url: `${GH}/OwnRedis` }],
+          terminal: terminals.redis,
         },
         {
           title: 'triple-s',
@@ -126,6 +138,7 @@ export const content = {
           desc: 'Standard-library Go server exposing S3-like bucket and object operations. Stores objects on disk and keeps bucket and object metadata in CSV files.',
           flow: 'REST API ──▶ Bucket / Object Operations ──▶ Disk\n                         │\n                   CSV Metadata',
           links: [{ label: 'GitHub', url: `${GH}/Triple_S` }],
+          terminal: terminals.triples,
         },
         {
           title: 'CreditCard',
@@ -135,6 +148,7 @@ export const content = {
           desc: 'Command-line tool to validate card numbers with Luhn, generate candidates from masked templates, inspect brand and issuer data, and issue valid numbers. Accepts arguments or stdin.',
           flow: 'Arguments / stdin ──▶ Luhn & Card Data\n                           │\n              Validate · Generate · Inspect · Issue',
           links: [{ label: 'GitHub', url: `${GH}/creditcard` }],
+          terminal: terminals.creditcard,
         },
         {
           title: 'Markov Chain',
@@ -144,6 +158,7 @@ export const content = {
           desc: 'Go CLI that builds a word-transition model from stdin and generates text. Supports configurable output length, starting prefix, and prefix length, with input validation and clear errors.',
           flow: 'Text Input ──▶ Markov State Table ──▶ Generated Text\n                      ▲\n             Prefix / Length Options',
           links: [{ label: 'GitHub', url: `${GH}/Markov-chain` }],
+          terminal: terminals.markov,
         },
         {
           title: 'CSV Parser',
@@ -153,6 +168,7 @@ export const content = {
           desc: 'Streaming CSV parser that reads line by line from io.Reader, handles quoted and escaped fields, empty fields, and final lines without a newline, and reports malformed quotes with ErrQuote.',
           flow: 'io.Reader ──▶ Line Parser ──▶ CSV Fields\n                    └──────▶ ErrQuote',
           links: [{ label: 'GitHub', url: `${GH}/aLibraryForOthers` }],
+          terminal: terminals.csv,
         },
         {
           title: 'Bitmap',
@@ -162,11 +178,13 @@ export const content = {
           desc: 'Command-line BMP tool for reading image headers and applying transformations: mirroring, rotation, cropping, and sequential color filters. Supports uncompressed 24-bit BMP files.',
           flow: 'BMP File ──▶ Header / Transform Pipeline ──▶ BMP Output\n                 Mirror · Rotate · Crop · Filters',
           links: [{ label: 'GitHub', url: `${GH}/bit-map` }],
+          terminal: terminals.bitmap,
         },
       ],
     },
     {
       label: 'GameDev, rigging & 3D',
+      hint: 'Open a card for gameplay shots, rigs, UV maps and animation clips — one of them is playable right now.',
       works: [
         {
           title: 'Crunchie Munchie',
