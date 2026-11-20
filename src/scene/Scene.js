@@ -4,6 +4,7 @@ import { AsciiEffect } from './AsciiEffect.js'
 import { TextShape, FloatingObject, Letter, BackgroundNoise } from './shapes.js'
 import { audio } from '../audio.js'
 import { bus } from '../bus.js'
+import { content } from '../content.js'
 
 const LIGHT_INTENSITY = 200
 // density ramps (light -> dark), one per section
@@ -133,7 +134,7 @@ export class Scene {
   }
 
   setupObject() {
-    this.object = new FloatingObject()
+    this.object = new FloatingObject(content.ornaments)
     this.group.add(this.object.root)
   }
 

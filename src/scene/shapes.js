@@ -117,28 +117,102 @@ export class TextShape {
   }
 }
 
-// ── rotating 3D object next to the introduction text ──
+// ── rotating 3D ornament next to the introduction text ──
 const OBJECT_Z = -3
+const ORNAMENT_SIZE = 1
+const ORNAMENT_SLICES = 12
+const ORNAMENT_DEPTH = 0.09
+
+/**
+ * Turns an ornament image into a white-on-black mask texture.
+ * Transparent PNGs use their alpha; opaque ones use inverted luminance
+ * (dark ornament on a light background).
+ */
+function loadOrnamentMask(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = () => {
+      const scale = Math.min(1, 512 / Math.max(img.width, img.height))
+      const w = Math.max(1, Math.round(img.width * scale))
+      const h = Math.max(1, Math.round(img.height * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      ctx.drawImage(img, 0, 0, w, h)
+      const data = ctx.getImageData(0, 0, w, h)
+      const px = data.data
+      let transparent = 0
+      for (let i = 3; i < px.length; i += 4) if (px[i] < 250) transparent++
+      const useAlpha = transparent > px.length / 4 / 50
+      for (let i = 0; i < px.length; i += 4) {
+        const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]
+        const v = useAlpha ? px[i + 3] : 255 - lum
+        px[i] = px[i + 1] = px[i + 2] = v
+        px[i + 3] = 255
+      }
+      ctx.putImageData(data, 0, 0)
+      const texture = new THREE.CanvasTexture(canvas)
+      resolve({ texture, aspect: w / h })
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
 
 export class FloatingObject {
-  constructor() {
+  constructor(ornaments = []) {
     this.root = new THREE.Group()
     this.root.position.set(-0.75, 0, -33)
+    this.ornaments = ornaments
+    this.masks = []
+    this.current = -1
     this.model = null
+    this.loading = null
   }
 
   load() {
-    if (this.model) return
-    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.45 })
-    this.model = new THREE.Mesh(new THREE.TorusKnotGeometry(0.32, 0.11, 220, 32, 2, 3), material)
-    this.model.scale.setScalar(1.1)
+    if (this.loading || !this.ornaments.length) return
+    this.material = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 0.8,
+      roughness: 0.45,
+      side: THREE.DoubleSide,
+      alphaTest: 0.5,
+    })
+    this.geometry = new THREE.PlaneGeometry(1, 1)
+    this.model = new THREE.Group()
+    for (let i = 0; i < ORNAMENT_SLICES; i++) {
+      const slice = new THREE.Mesh(this.geometry, this.material)
+      slice.position.z = (i / (ORNAMENT_SLICES - 1) - 0.5) * ORNAMENT_DEPTH
+      this.model.add(slice)
+    }
+    this.model.visible = false
     this.root.add(this.model)
+    this.loading = Promise.all(this.ornaments.map((url) => loadOrnamentMask(url).catch(() => null))).then((masks) => {
+      this.masks = masks.filter(Boolean)
+      if (this.current < 0) this.next()
+    })
+  }
+
+  // swap to the next ornament (called every time the object comes in)
+  next() {
+    if (!this.masks.length || !this.model) return
+    this.current = (this.current + 1) % this.masks.length
+    const { texture, aspect } = this.masks[this.current]
+    this.material.alphaMap = texture
+    this.material.needsUpdate = true
+    const w = aspect >= 1 ? ORNAMENT_SIZE : ORNAMENT_SIZE * aspect
+    const h = aspect >= 1 ? ORNAMENT_SIZE / aspect : ORNAMENT_SIZE
+    this.model.scale.set(w, h, 1)
+    this.model.visible = true
   }
 
   tick() {
     if (this.model) {
-      this.model.rotation.z += 0.005
-      this.model.rotation.x += 0.002
+      this.model.rotation.y += 0.006
+      this.model.rotation.z += 0.0025
     }
   }
 
@@ -148,6 +222,7 @@ export class FloatingObject {
   }
 
   show() {
+    if (this.root.position.z < -10) this.next()
     gsap.killTweensOf(this.root.position)
     gsap.fromTo(this.root.position, { z: -4.4 }, { z: OBJECT_Z, ease: 'back.out(2)', duration: 0.9, overwrite: 'all' })
   }
@@ -160,8 +235,9 @@ export class FloatingObject {
   }
 
   dispose() {
-    this.model?.geometry.dispose()
-    this.model?.material.dispose()
+    this.geometry?.dispose()
+    this.material?.dispose()
+    this.masks.forEach((m) => m.texture.dispose())
   }
 }
 

@@ -20,6 +20,7 @@
         <span class="nav-name" data-content="name"></span>
         <span class="nav-role" data-content="role"></span>
         <a class="nav-talk" data-content-href="email">Let's talk</a>
+        <a class="nav-cv" target="_blank" rel="noopener">CV</a>
         <button class="nav-sound" aria-label="Turn sound on" aria-pressed="false">♪</button>
       </header>
 
@@ -63,6 +64,9 @@
             <section class="works">
               <ul class="works-list"></ul>
             </section>
+
+            <!-- about: experience, education, certifications, stack -->
+            <section class="about"></section>
           </div>
         </div>
 
@@ -86,6 +90,27 @@
             </div>
           </div>
         </footer>
+      </div>
+
+      <!-- project / certificate case view -->
+      <div class="case" role="dialog" aria-modal="true" aria-hidden="true" data-lenis-prevent>
+        <div class="case-panel">
+          <div class="case-head site-grid">
+            <span class="case-num text-large"></span>
+            <h3 class="case-title text-large"></h3>
+            <button class="case-close text-small" type="button">Close ×</button>
+          </div>
+          <div class="case-body site-grid">
+            <div class="case-info">
+              <p class="case-sub text-small"></p>
+              <p class="case-desc"></p>
+              <pre class="case-flow text-small"></pre>
+              <ul class="case-stack text-small"></ul>
+              <ul class="case-links"></ul>
+            </div>
+            <div class="case-media"></div>
+          </div>
+        </div>
       </div>
     </main>
     <script type="module" src="/src/main.js"></script>

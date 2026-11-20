@@ -28,6 +28,7 @@ gsap.ticker.lagSmoothing(0)
 // ── static content ──────────────────────────────────────────
 $$('[data-content]').forEach((el) => (el.textContent = content[el.dataset.content]))
 $$('[data-content-href]').forEach((el) => (el.href = `mailto:${content[el.dataset.contentHref]}`))
+$('.nav-cv').href = content.cv
 
 // ── header ──────────────────────────────────────────────────
 const soundBtn = $('.nav-sound')
@@ -89,26 +90,6 @@ function initHero() {
 }
 
 // ── introduction ────────────────────────────────────────────
-const AWARD_GROUPS = [
-  { label: 'Awwwards', match: /^awwwards/i },
-  { label: 'FWA', match: /^fwa(?!wwwards)/i },
-  { label: 'CssDesignAwards', match: /^css/i },
-  { label: 'IDEA', match: /idea/i },
-  { label: 'Webbie', match: /^webb/i },
-  { label: 'Lovie', match: /^lovie/i },
-]
-
-function countRecognitions(works) {
-  const counts = new Map()
-  for (const w of works)
-    for (const a of w.awards || []) {
-      const group = AWARD_GROUPS.find((g) => g.match.test(a))
-      const label = group ? group.label : a.trim().split(/\s+/)[0]
-      counts.set(label, (counts.get(label) || 0) + 1)
-    }
-  return [...counts].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count)
-}
-
 function initIntroduction() {
   const root = $('.introduction')
   const text = $('.intro-text')
@@ -117,9 +98,7 @@ function initIntroduction() {
   text.innerHTML = html
 
   const list = $('.recognitions')
-  list.innerHTML = countRecognitions(content.works)
-    .map((r) => `<li><span>${escapeHtml(r.label)} × ${r.count}</span></li>`)
-    .join('')
+  list.innerHTML = content.facts.map((f) => `<li><span>${escapeHtml(f)}</span></li>`).join('')
 
   document.fonts.ready.then(() => {
     revealLines({ trigger: text, elements: $$('p', text), duration: 0.4, stagger: 0.08, start: 'top 80%', falling: true })
@@ -139,41 +118,143 @@ function initIntroduction() {
 // ── works ───────────────────────────────────────────────────
 function marqueeText(work, num) {
   const title = escapeHtml(work.title)
-  let s = work.awards.length ? '' : `${num}${NBSP7}${title}↗${NBSP7}`
-  for (const award of work.awards) s += `${NBSP7}${num}${NBSP7}${title}↗${NBSP7}${escapeHtml(award)}`
+  let s = ''
+  for (const tag of [work.subtitle, ...work.stack]) s += `${NBSP7}${num}${NBSP7}${title}↗${NBSP7}${escapeHtml(tag)}`
   while (s.length < 2000) s += s
   return s
 }
 
+const isVideo = (src) => /\.(mp4|webm|mov)$/i.test(src)
+
+// ── case view (project details / certificate) ───────────────
+const caseView = (() => {
+  const root = $('.case')
+  const panel = $('.case-panel', root)
+  let lastFocus = null
+  let open = false
+
+  const set = (sel, html) => ($(sel, root).innerHTML = html)
+
+  function show(data, origin) {
+    lastFocus = document.activeElement
+    set('.case-num', escapeHtml(data.num || ''))
+    set('.case-title', escapeHtml(data.title))
+    set('.case-sub', escapeHtml(data.subtitle || ''))
+    set('.case-desc', escapeHtml(data.desc || ''))
+    set('.case-flow', escapeHtml(data.flow || ''))
+    set('.case-stack', (data.stack || []).map((s) => `<li>${escapeHtml(s)}</li>`).join(''))
+    set(
+      '.case-links',
+      (data.links || [])
+        .map((l) => `<li><a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.label)} ↗</a></li>`)
+        .join(''),
+    )
+    set(
+      '.case-media',
+      (data.media || [])
+        .map((src) =>
+          isVideo(src)
+            ? `<figure><video src="${escapeHtml(src)}" muted loop playsinline autoplay controls preload="metadata"></video></figure>`
+            : `<figure><img src="${escapeHtml(src)}" alt="${escapeHtml(data.title)}" loading="lazy" decoding="async"></figure>`,
+        )
+        .join(''),
+    )
+    root.classList.toggle('no-media', !(data.media || []).length)
+    root.classList.toggle('is-image-only', !!data.imageOnly)
+    $('.case-flow', root).hidden = !data.flow
+
+    root.setAttribute('aria-hidden', 'false')
+    root.classList.add('is-open')
+    panel.scrollTop = 0
+    open = true
+    lenis.stop()
+    audio.whoosh()
+    const fromBottom = origin ? origin.y > window.innerHeight / 2 : true
+    gsap.fromTo(
+      panel,
+      { clipPath: fromBottom ? 'inset(100% 0% 0% 0%)' : 'inset(0% 0% 100% 0%)' },
+      { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.7, ease: 'power3.inOut', overwrite: 'all' },
+    )
+    gsap.fromTo(
+      $$('.case-head > *, .case-info > *, .case-media figure', root),
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', stagger: 0.04, delay: 0.35 },
+    )
+    $('.case-close', root).focus({ preventScroll: true })
+  }
+
+  function hide() {
+    if (!open) return
+    open = false
+    $$('video', root).forEach((v) => v.pause())
+    gsap.to(panel, {
+      clipPath: 'inset(0% 0% 100% 0%)',
+      duration: 0.5,
+      ease: 'power3.inOut',
+      overwrite: 'all',
+      onComplete: () => {
+        root.classList.remove('is-open')
+        root.setAttribute('aria-hidden', 'true')
+        set('.case-media', '')
+      },
+    })
+    lenis.start()
+    lastFocus?.focus?.({ preventScroll: true })
+  }
+
+  $('.case-close', root).addEventListener('click', hide)
+  root.addEventListener('click', (e) => e.target === root && hide())
+  window.addEventListener('keydown', (e) => e.key === 'Escape' && hide(), true)
+  return { show, hide, get open() { return open } }
+})()
+
 function initWorks() {
   const list = $('.works-list')
-  content.works.forEach((work, i) => {
-    const num = i + 1 < 10 ? `0${i + 1}` : String(i + 1)
-    const agency = `${work.agency}${work.with ? ` w/ ${work.with}` : ''}`
+  let index = 0
+  content.workGroups.forEach((group) => {
+    const head = document.createElement('li')
+    head.className = 'work-group site-grid text-small'
+    head.innerHTML = `<span class="work-group-label" data-scramble>${escapeHtml(group.label)}</span><span class="work-group-count" data-scramble>(${String(group.works.length).padStart(2, '0')})</span>`
+    list.appendChild(head)
+    $$('[data-scramble]', head).forEach((el) => scrambleText(el, { start: 'top 95%' }))
+
+    group.works.forEach((work) => addWork(list, work, ++index))
+  })
+
+  canvasTrigger('projects', $('.works'), 'top 75%', 'top 0%')
+}
+
+function addWork(list, work, i) {
+    const num = i < 10 ? `0${i}` : String(i)
+    const files = (work.media || []).length
     const li = document.createElement('li')
     li.className = 'work'
     li.innerHTML = `
-      <a class="work-link" href="${escapeHtml(work.url)}" target="_blank" rel="noopener">
+      <button class="work-link" type="button" aria-haspopup="dialog">
         <span class="work-row site-grid text-small">
           <span class="work-num text-large" data-scramble>${num}</span>
           <span class="work-title text-large" data-scramble>${escapeHtml(work.title)}</span>
           <span class="work-meta">
-            <span data-scramble>${escapeHtml(agency)}</span>
-            <span class="desktop" data-scramble>${escapeHtml(work.position)}</span>
-            <span class="desktop" data-scramble>${work.awards.length ? `${work.awards.length} Awards` : ''}</span>
+            <span data-scramble>${escapeHtml(work.category)}</span>
+            <span class="desktop" data-scramble>${escapeHtml(work.stack.slice(0, 3).join(' · '))}</span>
+            <span class="desktop" data-scramble>${files ? `${files} Files` : (work.links || []).map((l) => l.label).join(' · ')}</span>
           </span>
-          <span class="work-year" data-scramble>${work.year}</span>
+          <span class="work-year" data-scramble>${escapeHtml(work.year || '↗')}</span>
         </span>
         <span class="work-hover text-large">
           <span class="work-hover-band"><span class="work-hover-inner"><span class="work-hover-track">${marqueeText(work, num)}</span></span></span>
         </span>
-      </a>`
+      </button>`
     list.appendChild(li)
 
     $$('[data-scramble]', li).forEach((el) => scrambleText(el, { start: 'top 95%' }))
     ScrollTrigger.create({ trigger: li, start: 'top 95%', once: true, onEnter: () => li.classList.add('is-in-screen') })
 
     const link = $('.work-link', li)
+    link.addEventListener('click', (e) => {
+      bus('CANVAS:RIPPLE').emit({ x: e.clientX, y: e.clientY, power: 2 })
+      caseView.show({ ...work, num }, { x: e.clientX, y: e.clientY })
+    })
     const band = $('.work-hover-band', li)
     const inner = $('.work-hover-inner', li)
     const fromBottom = (e) => {
@@ -202,9 +283,93 @@ function initWorks() {
       })
       gsap.to(inner, { y: bottom ? '-100%' : '100%', scaleY: 0, duration: 0.5, ease: 'power2.out', overwrite: 'all' })
     })
-  })
+}
 
-  canvasTrigger('projects', $('.works'), 'top 75%', 'top 0%')
+// ── about: experience, education, certifications, stack ────
+function initAbout() {
+  const root = $('.about')
+  const row = (cells, attrs = '') =>
+    `<li class="about-row"${attrs}>${cells.map(([cls, html]) => `<span class="${cls}" data-scramble>${html}</span>`).join('')}</li>`
+  const block = (label, rows) => `
+    <div class="about-block site-grid text-small">
+      <h3 class="about-label" data-scramble>${label}</h3>
+      <ul class="about-list">${rows.join('')}</ul>
+    </div>`
+
+  root.innerHTML = [
+    `<h2 class="about-heading site-grid"><span class="text-large" data-scramble>About</span></h2>`,
+    block(
+      'Experience',
+      content.experience.map((e) =>
+        row([
+          ['about-a', escapeHtml(e.period)],
+          ['about-b', `${escapeHtml(e.role)} — ${escapeHtml(e.company)}`],
+          ['about-c', escapeHtml(e.detail)],
+        ]),
+      ),
+    ),
+    block(
+      'Education',
+      content.education.map((e) =>
+        row([
+          ['about-a', escapeHtml(e.period)],
+          ['about-b', escapeHtml(e.title)],
+          ['about-c', escapeHtml(e.detail)],
+        ]),
+      ),
+    ),
+    block(
+      'Certifications',
+      content.certifications.map((c, i) =>
+        row(
+          [
+            ['about-a', escapeHtml(c.org)],
+            ['about-b', escapeHtml(c.title)],
+            ['about-c about-open', 'View ↗'],
+          ],
+          ` data-cert="${i}" role="button" tabindex="0"`,
+        ),
+      ),
+    ),
+    block(
+      'Stack',
+      content.skills.map((s) =>
+        row([
+          ['about-a', escapeHtml(s.label)],
+          ['about-b about-wide', escapeHtml(s.value)],
+        ]),
+      ),
+    ),
+    block('CV', [
+      row(
+        [
+          ['about-a', escapeHtml(content.name)],
+          ['about-b', 'Curriculum Vitae — PDF'],
+          ['about-c about-open', `<a href="${escapeHtml(content.cv)}" target="_blank" rel="noopener">Open ↗</a>`],
+        ],
+        ' data-cv',
+      ),
+    ]),
+  ].join('')
+
+  $$('[data-scramble]', root).forEach((el) => scrambleText(el, { start: 'top 95%' }))
+  $$('.about-row, .about-block', root).forEach((el) =>
+    ScrollTrigger.create({ trigger: el, start: 'top 95%', once: true, onEnter: () => el.classList.add('is-in-screen') }),
+  )
+
+  const openCert = (el, e) => {
+    const c = content.certifications[+el.dataset.cert]
+    caseView.show({ title: c.title, subtitle: c.org, media: [c.image], imageOnly: true }, e && { x: e.clientX, y: e.clientY })
+  }
+  $$('[data-cert]', root).forEach((el) => {
+    el.addEventListener('click', (e) => openCert(el, e))
+    el.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openCert(el)))
+    el.addEventListener('mouseenter', () => audio.hover())
+  })
+  $('[data-cv]', root).addEventListener('click', (e) => {
+    if (e.target.closest('a')) return
+    window.open(content.cv, '_blank', 'noopener')
+  })
 }
 
 // ── footer ──────────────────────────────────────────────────
@@ -294,6 +459,7 @@ initScene()
 initHero()
 initIntroduction()
 initWorks()
+initAbout()
 initFooter()
 lenis.stop()
 runLoader({
