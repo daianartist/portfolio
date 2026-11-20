@@ -184,6 +184,8 @@ export const content = {
     },
     {
       label: 'GameDev, rigging & 3D',
+      // перед группой — витрина: картинки одного проекта появляются вразброс и сменяются
+      showcase: true,
       hint: 'Open a card for gameplay shots, rigs, UV maps and animation clips — one of them is playable right now.',
       works: [
         {

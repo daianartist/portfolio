@@ -525,6 +525,118 @@ main.black .footer-canvas {
   text-align: right;
 }
 
+/* gamedev showcase: black band, two packed rows scrolling like the hover marquee */
+.showcase {
+  margin-inline: -2rem;
+  padding-top: 12rem;
+}
+.showcase-band {
+  --gap: 6px;
+  position: relative;
+  overflow: hidden;
+  background: var(--black);
+  padding-block: var(--gap);
+}
+main.black .showcase-band {
+  background: var(--white);
+}
+.showcase-rows {
+  --row-h: 9rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+@media (width >= 1024px) {
+  .showcase-rows {
+    --row-h: 14rem;
+  }
+}
+.showcase-row {
+  overflow: hidden;
+}
+.showcase-track {
+  display: flex;
+  width: max-content;
+  gap: var(--gap);
+  animation: showcase-loop var(--duration, 60s) linear infinite;
+  animation-play-state: paused;
+}
+/* gap is part of every item's footprint: margin instead of flex gap keeps the loop exact */
+.showcase-track {
+  gap: 0;
+}
+.showcase-item,
+.showcase-pad {
+  flex: none;
+  height: var(--row-h);
+  margin-right: var(--gap);
+}
+.showcase.is-visible .showcase-track {
+  animation-play-state: running;
+}
+.showcase-band:hover .showcase-track {
+  animation-play-state: paused;
+}
+@keyframes showcase-loop {
+  to {
+    transform: translateX(calc(-1 * var(--loop)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .showcase-track {
+    animation: none;
+  }
+}
+.showcase-item {
+  display: block;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  transition:
+    opacity 0.3s var(--ease),
+    transform 0.4s var(--ease);
+}
+.showcase-item img,
+.showcase-item video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.showcase-band.is-focus .showcase-item:not(.is-related) {
+  opacity: 0.3;
+}
+.showcase-band.is-focus .showcase-item.is-related {
+  transform: scale(0.97);
+}
+.showcase-caption {
+  margin-top: 1.6rem;
+  align-items: baseline;
+}
+.showcase-num {
+  display: none;
+}
+.showcase-title {
+  grid-column: span 8;
+}
+.showcase-hint {
+  display: none;
+  opacity: 0.5;
+}
+@media (width >= 1024px) {
+  .showcase-num {
+    display: block;
+    grid-column: span 2;
+  }
+  .showcase-title {
+    grid-column: 3 / span 5;
+  }
+  .showcase-hint {
+    display: block;
+    grid-column: 9 / span 4;
+    text-align: right;
+  }
+}
+
 /* black band with a looping marquee, slides in from the side the cursor entered */
 .work-hover {
   position: absolute;

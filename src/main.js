@@ -389,6 +389,7 @@ function initWorks() {
   const list = $('.works-list')
   let index = 0
   content.workGroups.forEach((group) => {
+    if (group.showcase) addShowcase(list, group.works, index)
     const head = document.createElement('li')
     head.className = 'work-group site-grid text-small'
     head.innerHTML = `
@@ -404,6 +405,149 @@ function initWorks() {
   })
 
   canvasTrigger('projects', $('.works'), 'top 75%', 'top 0%')
+}
+
+// ── showcase: a black band with two packed rows of gamedev pictures ──
+// rows scroll on their own at the exact speed of the work-row hover marquee
+// (that one travels -200% of its band width in 60 s)
+const MARQUEE_SECONDS = 60
+const MARQUEE_DISTANCE = 2 // × band width
+
+function addShowcase(list, works, offset) {
+  const items = []
+  works.forEach((work, i) => {
+    const num = String(offset + i + 1).padStart(2, '0')
+    for (const src of work.media || []) items.push({ src, work, num, project: i })
+  })
+  if (!items.length) return
+
+  const li = document.createElement('li')
+  li.className = 'showcase'
+  li.innerHTML = `
+    <div class="showcase-band">
+      <div class="showcase-rows"></div>
+    </div>
+    <div class="showcase-caption site-grid text-small">
+      <span class="showcase-num"></span>
+      <span class="showcase-title">GameDev, rigging & 3D — in motion</span>
+      <span class="showcase-hint">Hover to pause · click a picture to open the project</span>
+    </div>`
+  list.appendChild(li)
+  const band = $('.showcase-band', li)
+  const rowsEl = $('.showcase-rows', li)
+  const title = $('.showcase-title', li)
+  const numEl = $('.showcase-num', li)
+  const defaultTitle = title.textContent
+
+  // real aspect of every picture / clip, so widths follow the media (no cropping)
+  const aspectOf = (src) =>
+    new Promise((resolve) => {
+      if (isVideo(src)) {
+        const v = document.createElement('video')
+        v.preload = 'metadata'
+        v.muted = true
+        v.onloadedmetadata = () => resolve(v.videoWidth / v.videoHeight || 1)
+        v.onerror = () => resolve(1)
+        v.src = src
+      } else {
+        const img = new Image()
+        img.onload = () => resolve(img.naturalWidth / img.naturalHeight || 1)
+        img.onerror = () => resolve(1)
+        img.src = src
+      }
+    })
+
+  const tile = (it, clone) => {
+    const media = isVideo(it.src)
+      ? `<video src="${escapeHtml(it.src)}" muted loop playsinline autoplay preload="metadata"></video>`
+      : `<img src="${escapeHtml(it.src)}" alt="${clone ? '' : escapeHtml(it.work.title)}" loading="lazy" decoding="async">`
+    return `<button type="button" class="showcase-item" data-i="${items.indexOf(it)}" data-project="${it.project}"
+      style="aspect-ratio:${it.aspect}" ${clone ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Open ${escapeHtml(it.work.title)}"`}>${media}</button>`
+  }
+
+  let ready = false
+  async function build() {
+    if (!ready) {
+      const ratios = await Promise.all(items.map((it) => aspectOf(it.src)))
+      items.forEach((it, k) => (it.aspect = ratios[k]))
+      ready = true
+    }
+    // row height / gap in px, measured from the live CSS (rem-based, responsive)
+    const probe = document.createElement('span')
+    probe.className = 'showcase-pad'
+    rowsEl.replaceChildren(probe)
+    const rowH = probe.getBoundingClientRect().height || 140
+    const gap = parseFloat(getComputedStyle(probe).marginRight) || 6
+
+    // pack: project after project, every picture goes to the shorter row,
+    // so related pictures sit next to each other across both rows
+    const rows = [[], []]
+    const len = [0, 0]
+    for (const it of items) {
+      const r = len[0] <= len[1] ? 0 : 1
+      rows[r].push(it)
+      len[r] += rowH * it.aspect + gap
+    }
+    // pad the shorter row so both loop with the same length (stay aligned)
+    const L = Math.max(len[0], len[1])
+    const pads = len.map((l) => L - l)
+
+    // same px/s as the hover marquee: 2 × band width per 60 s
+    const bandW = $('.work-hover')?.clientWidth || band.clientWidth || window.innerWidth
+    const speed = (MARQUEE_DISTANCE * bandW) / MARQUEE_SECONDS
+
+    rowsEl.innerHTML = rows
+      .map((row, r) => {
+        const once = row.map((it) => tile(it, false)).join('') + `<span class="showcase-pad" style="width:${pads[r]}px"></span>`
+        const twice = row.map((it) => tile(it, true)).join('') + `<span class="showcase-pad" style="width:${pads[r]}px"></span>`
+        return `<div class="showcase-row"><div class="showcase-track">${once}${twice}</div></div>`
+      })
+      .join('')
+
+    // exact loop length from the real layout (end of the first copy), so the seam is invisible
+    const pad = $('.showcase-track .showcase-pad', rowsEl)
+    const loop = pad ? pad.offsetLeft + pad.offsetWidth + gap : L
+    rowsEl.style.setProperty('--loop', `${loop}px`)
+    rowsEl.style.setProperty('--duration', `${loop / speed}s`)
+    if (li.classList.contains('is-visible')) $$('video', rowsEl).forEach((v) => v.play().catch(() => {}))
+  }
+
+  // hover: pause, dim the other projects, name the project
+  rowsEl.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('.showcase-item')
+    if (!el) return
+    const it = items[+el.dataset.i]
+    band.classList.add('is-focus')
+    $$('.showcase-item', rowsEl).forEach((x) => x.classList.toggle('is-related', x.dataset.project === el.dataset.project))
+    numEl.textContent = it.num
+    title.textContent = `${it.work.title} — ${it.work.subtitle}`
+    audio.hover()
+  })
+  band.addEventListener('mouseleave', () => {
+    band.classList.remove('is-focus')
+    numEl.textContent = ''
+    title.textContent = defaultTitle
+  })
+  rowsEl.addEventListener('click', (e) => {
+    const el = e.target.closest('.showcase-item')
+    if (!el) return
+    const it = items[+el.dataset.i]
+    bus('CANVAS:RIPPLE').emit({ x: e.clientX, y: e.clientY, power: 2 })
+    caseView.show({ ...it.work, num: it.num }, { x: e.clientX, y: e.clientY })
+  })
+
+  // only run (and play clips) while on screen
+  new IntersectionObserver(([e]) => {
+    li.classList.toggle('is-visible', e.isIntersecting)
+    $$('video', rowsEl).forEach((v) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()))
+  }).observe(li)
+
+  let resizeTimer
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(build, 200)
+  })
+  build()
 }
 
 function addWork(list, work, i) {
