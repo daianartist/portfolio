@@ -210,6 +210,8 @@ export const content = {
             'media/box-tutor-1.jpg',
             'media/box-tutor-2.jpg',
           ],
+          // phone screenshots: small equal tiles instead of full-width images
+          mediaLayout: 'grid',
         },
         {
           title: 'Zheztyrnaq',

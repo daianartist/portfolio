@@ -333,6 +333,7 @@ const caseView = (() => {
         .join(''),
     )
     root.classList.toggle('no-media', !(data.media || []).length)
+    $('.case-media', root).classList.toggle('is-grid', data.mediaLayout === 'grid')
     root.classList.toggle('has-term', !!data.terminal)
     terminal.open(data.terminal || null)
     root.classList.toggle('is-image-only', !!data.imageOnly)

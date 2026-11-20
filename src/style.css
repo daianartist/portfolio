@@ -632,6 +632,14 @@ main.black .work-hover-band {
 .about-row.is-in-screen::before {
   transform: scaleX(1);
 }
+/* long details wrap onto several lines (the scramble overlay is nowrap by default) */
+.about-row [data-scramble] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.about-row [data-scramble] > div {
+  white-space: normal !important;
+}
 .about-a {
   grid-column: span 3;
 }
@@ -809,6 +817,24 @@ main.black .case-close {
   display: block;
   width: 100%;
   height: auto;
+}
+/* equal small tiles (e.g. phone screenshots) */
+.case-media.is-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+}
+.case-media.is-grid figure {
+  aspect-ratio: 9 / 16;
+}
+.case-media.is-grid img {
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+@media (width >= 1024px) {
+  .case-media.is-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .case.no-media .case-media {
   display: none;
