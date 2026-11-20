@@ -302,7 +302,7 @@ export const content = {
     { org: 'OMNIUM', title: 'GAMEDEV TEAMS Incubation Program', image: 'media/cert/gamedev-teams.jpg' },
     { org: 'Game Development Demo Day', title: 'Certificate of Achievement', image: 'media/cert/demo-day-1.jpg' },
     { org: 'Game Development Demo Day', title: 'Certificate of Achievement', image: 'media/cert/demo-day-2.jpg' },
-    { org: 'Stepik', title: 'JavaScript', image: 'media/cert/stepik-js.jpg' },
+    { org: 'Stepik', title: 'JavaScript for Beginners — with distinction', image: 'media/cert/stepik-js.jpg' },
     { org: '1C Kazakhstan', title: '1C:Enterprise 8 Configuration', image: 'media/cert/1c-config.jpg' },
     { org: '1C Kazakhstan', title: '1C:Enterprise 8 Programming', image: 'media/cert/1c-programming.jpg' },
     { org: '1C Kazakhstan', title: '1C Programmer Training & Employment Program', image: 'media/cert/1c-program.jpg' },
